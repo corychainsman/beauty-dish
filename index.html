@@ -15,7 +15,14 @@
 <div id="picker">
 	<h3>💡<br>Video Conference Beauty Dish<br>💡️</h3>
 	<h5>Maximize Window 🖥️</h5>
-	<h5>Brightness ➡️ 100%</h5>
+	<h5 id="brightnessStatus">Brightness ➡️ 100%</h5>
+	<p>
+		<label for="hdrToggle">
+			<input type="checkbox" id="hdrToggle" checked>
+			HDR Boost (if supported)
+		</label>
+	</p>
+	<p><small>Shortcuts: ⬆️ brighter, ⬇️ dimmer</small></p>
 	<br>
 	<p><label for="slider">Color temperature: <span id="output"></span>K</label></p>
 	<input type="range" id="slider" name="volume" min="3000" max="8000">
