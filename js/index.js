@@ -25,6 +25,28 @@ slider.ondblclick = function(){
 	sliderReset();
 };
 
+
+document.addEventListener("keydown", function (event) {
+	if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") {
+		return;
+	}
+
+	if (event.target === code) {
+		return;
+	}
+
+	var min = parseInt(slider.min);
+	var max = parseInt(slider.max);
+	var rangeStep = Math.round((max - min) * 0.1);
+	var value = parseInt(slider.value);
+	var nextValue = event.key === "ArrowRight" ? value + rangeStep : value - rangeStep;
+	nextValue = Math.min(max, Math.max(min, nextValue));
+
+	event.preventDefault();
+	slider.value = nextValue;
+	updateColor(nextValue);
+});
+
 toggleAdvanced.onclick = function() {
 	advanced.classList.toggle("hidden");
 	return false;
