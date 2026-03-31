@@ -1,6 +1,8 @@
 var dish = document.getElementById("dish");
 var slider = document.getElementById("slider");
 var output = document.getElementById("output");
+var brightnessStatus = document.getElementById("brightnessStatus");
+var hdrToggle = document.getElementById("hdrToggle");
 
 var toggleAdvanced = document.getElementById("toggleAdvanced");
 
@@ -12,10 +14,17 @@ var thumbnail = document.getElementById("thumbnail");
 var submit = document.getElementById("submit");
 var webcamPreview = document.getElementById("webcamPreview");
 
+var brightnessLevel = 100;
+var MIN_BRIGHTNESS = 10;
+var SDR_MAX_BRIGHTNESS = 100;
+var HDR_MAX_BRIGHTNESS = 200;
+var BRIGHTNESS_STEP = 5;
+var hdrSupported = window.matchMedia && window.matchMedia("(dynamic-range: high)").matches;
 
 updateColor(slider.value);
 code_output.innerHTML = eval(code.value);
-updateThumbnail()
+updateThumbnail();
+applyBrightness();
 
 slider.oninput = function(){
 	updateColor(slider.value);
@@ -28,11 +37,15 @@ slider.ondblclick = function(){
 toggleAdvanced.onclick = function() {
 	advanced.classList.toggle("hidden");
 	return false;
-}
+};
+
+hdrToggle.onchange = function() {
+	applyBrightness();
+};
 
 code.oninput = function(){
 	code_output.innerHTML = eval(code.value);
-	updateThumbnail()
+	updateThumbnail();
 };
 
 code.onkeydown = function(e){
@@ -44,8 +57,8 @@ code.onkeydown = function(e){
 submit.onclick = function(){
 	dish.style.background = thumbnail.style.background;
 	slider.value = (parseInt(slider.min) + parseInt(slider.max))/2;
-	output.innerHTML = "N/A ";
-}
+	output.innerHTML = "N/A";
+};
 
 var videoContainer = document.getElementById("videoContainer");
 var video = document.getElementById("videoElement");
@@ -63,6 +76,18 @@ webcamPreview.onclick = function (){
 		});
 	}
 };
+
+window.addEventListener("keydown", function(event) {
+	if (event.key === "ArrowUp") {
+		event.preventDefault();
+		changeBrightness(BRIGHTNESS_STEP);
+	}
+
+	if (event.key === "ArrowDown") {
+		event.preventDefault();
+		changeBrightness(-BRIGHTNESS_STEP);
+	}
+});
 
 window.dragMoveListener = dragMoveListener;
 
@@ -141,4 +166,27 @@ function sliderReset() {
 
 function updateThumbnail() {
 	thumbnail.style.background = code_output.innerHTML;
+}
+
+function getBrightnessMax() {
+	if (hdrToggle.checked && hdrSupported) {
+		return HDR_MAX_BRIGHTNESS;
+	}
+
+	return SDR_MAX_BRIGHTNESS;
+}
+
+function applyBrightness() {
+	var maxBrightness = getBrightnessMax();
+	brightnessLevel = Math.min(Math.max(brightnessLevel, MIN_BRIGHTNESS), maxBrightness);
+
+	dish.style.filter = "brightness(" + (brightnessLevel / 100) + ")";
+
+	var hdrState = hdrToggle.checked ? (hdrSupported ? "HDR on" : "HDR requested (unsupported)") : "HDR off";
+	brightnessStatus.innerHTML = "Brightness ➡️ " + brightnessLevel + "% (" + hdrState + ")";
+}
+
+function changeBrightness(delta) {
+	brightnessLevel += delta;
+	applyBrightness();
 }
