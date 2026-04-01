@@ -27,6 +27,8 @@ export function createDebugReporter(enabled) {
 			"webGpuHdrSupported: " + state.data.webGpuHdrSupported,
 			"ultraHdrPathAllowed: " + state.data.ultraHdrPathAllowed,
 			"brightness: " + state.data.brightness,
+			"hdrChromaSafeScaleMax: " + state.data.hdrChromaSafeScaleMax,
+			"hdrChromaSafeBrightnessMax: " + state.data.hdrChromaSafeBrightnessMax,
 			"exposureStops: " + state.data.exposureStops,
 			"exposureScale: " + state.data.exposureScale,
 			"toneMapOperator: " + state.data.toneMapOperator,

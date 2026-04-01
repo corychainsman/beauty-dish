@@ -15,17 +15,21 @@ import {
 } from "./colorTransforms.js";
 
 var DEFAULT_PAPER_WHITE_NITS = 203;
-var DEFAULT_PEAK_WHITE_NITS = 1000;
+var HDR_CHROMA_SAFE_CHANNEL_CEILING = 1;
 var EPSILON = 1e-6;
 
 export function buildColorPipelineState(baseColorObject, brightnessLevel, outputProfile) {
 	var uiEncodedSrgb = getUiEncodedSrgb(baseColorObject);
 	var workingLinearP3 = linearSrgbToLinearDisplayP3(encodedSrgbToLinearSrgb(uiEncodedSrgb));
-	var exposureStops = (brightnessLevel - 100) / 50;
-	var exposureScale = Math.pow(2, exposureStops);
+	var hdrChromaSafeScaleMax = getHdrChromaSafeScaleMax(workingLinearP3);
+	var hdrChromaSafeBrightnessMax = 100 + (100 * Math.max(hdrChromaSafeScaleMax - 1, 0));
+	var peakWhiteNits = DEFAULT_PAPER_WHITE_NITS * (outputProfile === OUTPUT_PROFILES.HDR_P3 ? hdrChromaSafeScaleMax : 1);
+	var exposureScale = getExposureScale(brightnessLevel, outputProfile, hdrChromaSafeScaleMax);
+	var exposureStops = Math.log2(Math.max(exposureScale, EPSILON));
 	var sceneLinearP3 = scaleColor(workingLinearP3, exposureScale);
 	var pipelineFlags = {
 		hdrShoulderApplied: false,
+		hdrHeadroomCapped: false,
 		hdrGamutCompressed: false,
 		sdrGamutCompressed: false,
 		finalSafetyClamped: false
@@ -39,6 +43,8 @@ export function buildColorPipelineState(baseColorObject, brightnessLevel, output
 		outputProfile: outputProfile,
 		uiEncodedSrgb: uiEncodedSrgb,
 		workingLinearP3: workingLinearP3,
+		hdrChromaSafeScaleMax: hdrChromaSafeScaleMax,
+		hdrChromaSafeBrightnessMax: hdrChromaSafeBrightnessMax,
 		exposureStops: exposureStops,
 		exposureScale: exposureScale,
 		sceneLinearP3: sceneLinearP3,
@@ -47,7 +53,7 @@ export function buildColorPipelineState(baseColorObject, brightnessLevel, output
 		sdrCssColor: sdrCssColor,
 		toneMapOperator: TONE_MAP_OPERATORS.ACES_FIT,
 		paperWhiteNits: DEFAULT_PAPER_WHITE_NITS,
-		peakWhiteNits: DEFAULT_PEAK_WHITE_NITS,
+		peakWhiteNits: peakWhiteNits,
 		pipelineFlags: pipelineFlags
 	};
 }
@@ -90,28 +96,13 @@ function buildHdrDisplayColor(sceneLinearP3, outputProfile, sdrLinearSrgb, pipel
 		return linearSrgbToLinearDisplayP3(sdrLinearSrgb);
 	}
 
-	var peakRatio = DEFAULT_PEAK_WHITE_NITS / DEFAULT_PAPER_WHITE_NITS;
-	var luminance = dotColor(sceneLinearP3, LINEAR_DISPLAY_P3_LUMINANCE_WEIGHTS);
-	var mappedLuminance = applyHdrShoulder(luminance, peakRatio);
-	var scale = luminance > EPSILON ? mappedLuminance / luminance : 0;
-	var shouldered = scaleColor(sceneLinearP3, scale);
+	var capped = capHdrColorPreservingChromaticity(sceneLinearP3, HDR_CHROMA_SAFE_CHANNEL_CEILING);
 
-	if (Math.abs(mappedLuminance - luminance) > EPSILON) {
-		pipelineFlags.hdrShoulderApplied = true;
+	if (!colorsEqual(capped, sceneLinearP3)) {
+		pipelineFlags.hdrHeadroomCapped = true;
 	}
 
-	var compressed = compressColorTowardsAchromatic(
-		shouldered,
-		LINEAR_DISPLAY_P3_LUMINANCE_WEIGHTS,
-		0,
-		peakRatio
-	);
-
-	if (!colorsEqual(compressed, shouldered)) {
-		pipelineFlags.hdrGamutCompressed = true;
-	}
-
-	return safetyClamp(compressed, 0, peakRatio, pipelineFlags);
+	return safetyClamp(capped, 0, HDR_CHROMA_SAFE_CHANNEL_CEILING, pipelineFlags);
 }
 
 function safetyClamp(color, minValue, maxValue, pipelineFlags) {
@@ -157,23 +148,46 @@ function compressColorTowardsAchromatic(color, luminanceWeights, minValue, maxVa
 	return candidate;
 }
 
+function capHdrColorPreservingChromaticity(color, peakRatio) {
+	var maxChannel = Math.max(color.r, color.g, color.b);
+
+	if (maxChannel <= peakRatio || maxChannel <= EPSILON) {
+		return color;
+	}
+
+	return scaleColor(color, peakRatio / maxChannel);
+}
+
+function getHdrChromaSafeScaleMax(workingLinearP3) {
+	var maxChannel = Math.max(workingLinearP3.r, workingLinearP3.g, workingLinearP3.b);
+
+	if (maxChannel <= EPSILON) {
+		return 1;
+	}
+
+	return Math.max(HDR_CHROMA_SAFE_CHANNEL_CEILING / maxChannel, 1);
+}
+
+function getExposureScale(brightnessLevel, outputProfile, hdrChromaSafeScaleMax) {
+	if (brightnessLevel <= 100) {
+		return Math.pow(2, (brightnessLevel - 100) / 50);
+	}
+
+	if (outputProfile !== OUTPUT_PROFILES.HDR_P3) {
+		return 1;
+	}
+
+	var interpolation = (brightnessLevel - 100) / 100;
+
+	return Math.pow(hdrChromaSafeScaleMax, interpolation);
+}
+
 function acesFitToneMap(value) {
 	if (value <= 0) {
 		return 0;
 	}
 
 	return clampValue((value * ((2.51 * value) + 0.03)) / (value * ((2.43 * value) + 0.59) + 0.14), 0, 1);
-}
-
-function applyHdrShoulder(value, peakRatio) {
-	if (value <= 1) {
-		return Math.max(value, 0);
-	}
-
-	var highlight = value - 1;
-	var shoulderRange = peakRatio - 1;
-
-	return 1 + ((shoulderRange * highlight) / (shoulderRange + highlight));
 }
 
 function toCssColor(encodedSrgb) {

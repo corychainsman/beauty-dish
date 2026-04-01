@@ -250,6 +250,8 @@ function applyRenderState() {
 	debugReporter.update({
 		outputProfile: state.outputProfile,
 		brightness: state.brightnessLevel + "%",
+		hdrChromaSafeScaleMax: state.hdrChromaSafeScaleMax.toFixed(3),
+		hdrChromaSafeBrightnessMax: state.hdrChromaSafeBrightnessMax.toFixed(1) + "%",
 		exposureStops: state.exposureStops.toFixed(2),
 		exposureScale: state.exposureScale.toFixed(2),
 		toneMapOperator: state.toneMapOperator,
