@@ -1,0 +1,11 @@
+export var RENDERER_IDS = {
+	WEBGPU_HDR: "webgpu-hdr",
+	ULTRAHDR_IMAGE: "ultrahdr-image",
+	SDR_CSS: "sdr-css"
+};
+
+export var RENDERER_ORDER = [
+	RENDERER_IDS.WEBGPU_HDR,
+	RENDERER_IDS.ULTRAHDR_IMAGE,
+	RENDERER_IDS.SDR_CSS
+];

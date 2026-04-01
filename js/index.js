@@ -1,31 +1,44 @@
+import { RenderController } from "./app/renderController.js";
+import { clampBrightnessLevel, getHdrIntensity, toLinearNormalizedColor } from "./utils/color.js";
+import { createDebugReporter } from "./utils/debug.js";
+
 var dish = document.getElementById("dish");
 var slider = document.getElementById("slider");
 var output = document.getElementById("output");
 var brightnessStatus = document.getElementById("brightnessStatus");
 var hdrToggle = document.getElementById("hdrToggle");
-
 var toggleAdvanced = document.getElementById("toggleAdvanced");
-
-
 var advanced = document.getElementById("advanced");
 var code = document.getElementById("code");
 var code_output = document.getElementById("code_output");
 var thumbnail = document.getElementById("thumbnail");
 var submit = document.getElementById("submit");
 var webcamPreview = document.getElementById("webcamPreview");
-
 var brightnessLevel = 100;
-var MIN_BRIGHTNESS = 10;
-var SDR_MAX_BRIGHTNESS = 100;
-var HDR_MAX_BRIGHTNESS = 200;
 var BRIGHTNESS_STEP = 5;
-var hdrSupported = window.matchMedia && window.matchMedia("(dynamic-range: high)").matches;
-var dishBaseColor = chroma.temperature(parseInt(slider.value));
+var dishBaseColor = window.chroma.temperature(parseInt(slider.value || slider.min, 10));
+var searchParams = new URLSearchParams(window.location.search);
+var debugReporter = createDebugReporter(searchParams.get("debugHDR") === "1");
+var renderController = new RenderController(dish, debugReporter, {
+	forceRenderer: searchParams.get("renderer")
+});
+var currentCapabilities = {
+	reportsHighDynamicRange: false
+};
 
-updateColor(slider.value);
+output.innerHTML = slider.value;
 code_output.innerHTML = eval(code.value);
 updateThumbnail();
-applyBrightness();
+
+renderController.init(getRenderState())
+	.then(function(capabilities) {
+		currentCapabilities = capabilities;
+		applyRenderState();
+	})
+	.catch(function(error) {
+		console.error("Renderer initialization failed", error);
+		brightnessStatus.innerHTML = "Brightness ➡️ " + brightnessLevel + "% (renderer init failed)";
+	});
 
 slider.oninput = function(){
 	updateColor(slider.value);
@@ -63,7 +76,7 @@ toggleAdvanced.onclick = function() {
 };
 
 hdrToggle.onchange = function() {
-	applyBrightness();
+	applyRenderState();
 };
 
 code.oninput = function(){
@@ -78,10 +91,9 @@ code.onkeydown = function(e){
 };
 
 submit.onclick = function(){
-	dish.style.background = thumbnail.style.background;
-	if (chroma.valid(thumbnail.style.background)) {
-		dishBaseColor = chroma(thumbnail.style.background);
-		applyBrightness();
+	if (window.chroma.valid(thumbnail.style.background)) {
+		dishBaseColor = window.chroma(thumbnail.style.background);
+		applyRenderState();
 	}
 	slider.value = (parseInt(slider.min) + parseInt(slider.max))/2;
 	output.innerHTML = "N/A";
@@ -182,8 +194,8 @@ interact('#videoContainer')
 
 function updateColor(value) {
 	output.innerHTML = value;
-	dishBaseColor = chroma.temperature(parseInt(value));
-	applyBrightness();
+	dishBaseColor = window.chroma.temperature(parseInt(value, 10));
+	applyRenderState();
 	return;
 }
 
@@ -196,35 +208,53 @@ function updateThumbnail() {
 	thumbnail.style.background = code_output.innerHTML;
 }
 
-function getBrightnessMax() {
-	if (hdrToggle.checked && hdrSupported) {
-		return HDR_MAX_BRIGHTNESS;
-	}
-
-	return SDR_MAX_BRIGHTNESS;
-}
-
-function applyBrightness() {
-	var maxBrightness = getBrightnessMax();
-	brightnessLevel = Math.min(Math.max(brightnessLevel, MIN_BRIGHTNESS), maxBrightness);
-	var brightnessOffset = (brightnessLevel - 100) / 100;
-	var brightnessScaleFactor = 2;
-	var adjustedColor = dishBaseColor;
-
-	if (brightnessOffset > 0) {
-		adjustedColor = dishBaseColor.brighten(brightnessOffset * brightnessScaleFactor);
-	} else if (brightnessOffset < 0) {
-		adjustedColor = dishBaseColor.darken(Math.abs(brightnessOffset) * brightnessScaleFactor);
-	}
-
-	dish.style.backgroundColor = adjustedColor.css();
-	dish.style.filter = "none";
-
-	var hdrState = hdrToggle.checked ? (hdrSupported ? "HDR on" : "HDR requested (unsupported)") : "HDR off";
-	brightnessStatus.innerHTML = "Brightness ➡️ " + brightnessLevel + "% (" + hdrState + ")";
-}
-
 function changeBrightness(delta) {
 	brightnessLevel += delta;
-	applyBrightness();
+	applyRenderState();
 }
+
+function getRenderState() {
+	var hdrRequested = hdrToggle.checked;
+	var hdrSupported = !!currentCapabilities.reportsHighDynamicRange;
+	var clampedBrightness = clampBrightnessLevel(brightnessLevel, hdrRequested, hdrSupported);
+
+	brightnessLevel = clampedBrightness;
+
+	return {
+		baseColorObject: dishBaseColor,
+		baseColor: toLinearNormalizedColor(dishBaseColor),
+		baseColorCss: dishBaseColor.css(),
+		brightnessLevel: clampedBrightness,
+		hdrRequested: hdrRequested,
+		hdrSupported: hdrSupported,
+		hdrIntensity: hdrRequested ? getHdrIntensity(clampedBrightness) : Math.min(clampedBrightness, 100) / 100,
+		viewportWidth: window.innerWidth,
+		viewportHeight: window.innerHeight
+	};
+}
+
+function applyRenderState() {
+	var state = getRenderState();
+	var hdrState = state.hdrRequested ? (state.hdrSupported ? "HDR on" : "HDR requested (unsupported)") : "HDR off";
+
+	if (renderController.currentRenderer) {
+		renderController.resize(state.viewportWidth, state.viewportHeight);
+		renderController.render(state);
+	}
+
+	debugReporter.update({
+		brightness: state.brightnessLevel + "%",
+		hdrIntensity: state.hdrIntensity.toFixed(2),
+		baseColor: state.baseColorCss
+	});
+
+	brightnessStatus.innerHTML = "Brightness ➡️ " + state.brightnessLevel + "% (" + hdrState + ")";
+}
+
+window.addEventListener("resize", function() {
+	applyRenderState();
+});
+
+window.addEventListener("orientationchange", function() {
+	applyRenderState();
+});
