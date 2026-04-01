@@ -207,10 +207,15 @@ function getBrightnessMax() {
 function applyBrightness() {
 	var maxBrightness = getBrightnessMax();
 	brightnessLevel = Math.min(Math.max(brightnessLevel, MIN_BRIGHTNESS), maxBrightness);
-	var scaledLightness = dishBaseColor.lch()[0] * (brightnessLevel / 100);
-	scaledLightness = Math.min(100, Math.max(0, scaledLightness));
-	var baseLch = dishBaseColor.lch();
-	var adjustedColor = chroma.lch(scaledLightness, baseLch[1], baseLch[2]);
+	var brightnessOffset = (brightnessLevel - 100) / 100;
+	var brightnessScaleFactor = 2;
+	var adjustedColor = dishBaseColor;
+
+	if (brightnessOffset > 0) {
+		adjustedColor = dishBaseColor.brighten(brightnessOffset * brightnessScaleFactor);
+	} else if (brightnessOffset < 0) {
+		adjustedColor = dishBaseColor.darken(Math.abs(brightnessOffset) * brightnessScaleFactor);
+	}
 
 	dish.style.backgroundColor = adjustedColor.css();
 	dish.style.filter = "none";
