@@ -18,14 +18,26 @@ export function createDebugReporter(enabled) {
 		overlay.textContent = [
 			"HDR Debug",
 			"renderer: " + (state.data.renderer || "pending"),
+			"outputProfile: " + state.data.outputProfile,
 			"forcedRenderer: " + (state.data.forcedRenderer || "auto"),
 			"hdrMediaQuery: " + state.data.hdrMediaQuery,
 			"hasWebGpu: " + state.data.hasWebGpu,
+			"supportsDisplayP3Canvas: " + state.data.supportsDisplayP3Canvas,
+			"supportsExtendedToneMapping: " + state.data.supportsExtendedToneMapping,
 			"webGpuHdrSupported: " + state.data.webGpuHdrSupported,
 			"ultraHdrPathAllowed: " + state.data.ultraHdrPathAllowed,
 			"brightness: " + state.data.brightness,
-			"hdrIntensity: " + state.data.hdrIntensity,
+			"exposureStops: " + state.data.exposureStops,
+			"exposureScale: " + state.data.exposureScale,
+			"toneMapOperator: " + state.data.toneMapOperator,
+			"paperWhiteNits: " + state.data.paperWhiteNits,
+			"peakWhiteNits: " + state.data.peakWhiteNits,
 			"baseColor: " + state.data.baseColor,
+			"workingLinearP3: " + state.data.workingLinearP3,
+			"sceneLinearP3: " + state.data.sceneLinearP3,
+			"sdrLinearSrgb: " + state.data.sdrLinearSrgb,
+			"hdrDisplayLinearP3: " + state.data.hdrDisplayLinearP3,
+			"pipelineFlags: " + state.data.pipelineFlags,
 			"reasons: " + (state.data.reasons && state.data.reasons.length ? state.data.reasons.join(" | ") : "none")
 		].join("\n");
 	}

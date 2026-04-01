@@ -1,5 +1,4 @@
 import { RENDERER_IDS } from "./types.js";
-import { getDisplayableCssColor } from "../utils/color.js";
 
 export class UltraHdrImageRenderer {
 	constructor() {
@@ -21,13 +20,11 @@ export class UltraHdrImageRenderer {
 	}
 
 	render(state) {
-		var cssColor = getDisplayableCssColor(state.baseColorObject, state.hdrIntensity);
-
 		clearTimeout(this.pendingFrame);
 		this.pendingFrame = window.setTimeout(() => {
 			var svg = [
 				"<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 2 2' preserveAspectRatio='none'>",
-				"<rect width='2' height='2' fill='" + cssColor + "' />",
+				"<rect width='2' height='2' fill='" + state.sdrCssColor + "' />",
 				"</svg>"
 			].join("");
 			this.image.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);

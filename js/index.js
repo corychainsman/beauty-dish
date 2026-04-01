@@ -1,5 +1,7 @@
 import { RenderController } from "./app/renderController.js";
-import { clampBrightnessLevel, getHdrIntensity, toLinearNormalizedColor } from "./utils/color.js";
+import { OUTPUT_PROFILES } from "./renderer/types.js";
+import { clampBrightnessLevel } from "./utils/color.js";
+import { buildColorPipelineState } from "./utils/colorPipeline.js";
 import { createDebugReporter } from "./utils/debug.js";
 
 var dish = document.getElementById("dish");
@@ -23,7 +25,9 @@ var renderController = new RenderController(dish, debugReporter, {
 	forceRenderer: searchParams.get("renderer")
 });
 var currentCapabilities = {
-	reportsHighDynamicRange: false
+	reportsHighDynamicRange: false,
+	outputProfile: OUTPUT_PROFILES.SDR_SRGB,
+	selectedRenderer: null
 };
 
 output.innerHTML = slider.value;
@@ -215,22 +219,23 @@ function changeBrightness(delta) {
 
 function getRenderState() {
 	var hdrRequested = hdrToggle.checked;
-	var hdrSupported = !!currentCapabilities.reportsHighDynamicRange;
+	var hdrSupported = currentCapabilities.outputProfile === OUTPUT_PROFILES.HDR_P3;
 	var clampedBrightness = clampBrightnessLevel(brightnessLevel, hdrRequested, hdrSupported);
+	var outputProfile = hdrRequested && hdrSupported ? OUTPUT_PROFILES.HDR_P3 : OUTPUT_PROFILES.SDR_SRGB;
+	var pipelineState = buildColorPipelineState(dishBaseColor, clampedBrightness, outputProfile);
 
 	brightnessLevel = clampedBrightness;
 
-	return {
+	return Object.assign({
 		baseColorObject: dishBaseColor,
-		baseColor: toLinearNormalizedColor(dishBaseColor),
 		baseColorCss: dishBaseColor.css(),
 		brightnessLevel: clampedBrightness,
 		hdrRequested: hdrRequested,
 		hdrSupported: hdrSupported,
-		hdrIntensity: hdrRequested ? getHdrIntensity(clampedBrightness) : Math.min(clampedBrightness, 100) / 100,
+		rendererOutputProfile: currentCapabilities.outputProfile,
 		viewportWidth: window.innerWidth,
 		viewportHeight: window.innerHeight
-	};
+	}, pipelineState);
 }
 
 function applyRenderState() {
@@ -243,9 +248,19 @@ function applyRenderState() {
 	}
 
 	debugReporter.update({
+		outputProfile: state.outputProfile,
 		brightness: state.brightnessLevel + "%",
-		hdrIntensity: state.hdrIntensity.toFixed(2),
-		baseColor: state.baseColorCss
+		exposureStops: state.exposureStops.toFixed(2),
+		exposureScale: state.exposureScale.toFixed(2),
+		toneMapOperator: state.toneMapOperator,
+		paperWhiteNits: state.paperWhiteNits,
+		peakWhiteNits: state.peakWhiteNits,
+		baseColor: state.baseColorCss,
+		workingLinearP3: formatDebugColor(state.workingLinearP3),
+		sceneLinearP3: formatDebugColor(state.sceneLinearP3),
+		sdrLinearSrgb: formatDebugColor(state.sdrLinearSrgb),
+		hdrDisplayLinearP3: formatDebugColor(state.hdrDisplayLinearP3),
+		pipelineFlags: formatDebugFlags(state.pipelineFlags)
 	});
 
 	brightnessStatus.innerHTML = "Brightness ➡️ " + state.brightnessLevel + "% (" + hdrState + ")";
@@ -258,3 +273,15 @@ window.addEventListener("resize", function() {
 window.addEventListener("orientationchange", function() {
 	applyRenderState();
 });
+
+function formatDebugColor(color) {
+	return [color.r, color.g, color.b].map(function(value) {
+		return value.toFixed(3);
+	}).join(", ");
+}
+
+function formatDebugFlags(flags) {
+	return Object.keys(flags).filter(function(key) {
+		return flags[key];
+	}).join(", ") || "none";
+}

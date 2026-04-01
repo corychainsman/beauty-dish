@@ -1,5 +1,5 @@
 import { getRenderCapabilities } from "../renderer/capabilities.js";
-import { selectRenderer } from "../renderer/selectRenderer.js";
+import { getOutputProfileForRenderer, selectRenderer } from "../renderer/selectRenderer.js";
 import { WebGpuHdrRenderer } from "../renderer/WebGpuHdrRenderer.js";
 import { UltraHdrImageRenderer } from "../renderer/UltraHdrImageRenderer.js";
 import { SdrCssRenderer } from "../renderer/SdrCssRenderer.js";
@@ -27,14 +27,18 @@ export class RenderController {
 		var reasons = selection.reasons.slice();
 
 		capabilities.selectedRenderer = selection.selectedRenderer;
+		capabilities.outputProfile = selection.outputProfile;
 		capabilities.reasons = reasons;
 		this.capabilities = capabilities;
 
 		this.debugReporter.update({
 			renderer: capabilities.selectedRenderer,
+			outputProfile: capabilities.outputProfile,
 			forcedRenderer: capabilities.forcedRenderer || "auto",
 			hdrMediaQuery: capabilities.reportsHighDynamicRange,
 			hasWebGpu: capabilities.hasWebGpu,
+			supportsDisplayP3Canvas: capabilities.supportsDisplayP3Canvas,
+			supportsExtendedToneMapping: capabilities.supportsExtendedToneMapping,
 			webGpuHdrSupported: capabilities.webGpuHdrSupported,
 			ultraHdrPathAllowed: capabilities.ultraHdrPathAllowed,
 			reasons: reasons
@@ -46,11 +50,13 @@ export class RenderController {
 			try {
 				await this.mountRenderer(rendererId, initialState);
 				this.capabilities.selectedRenderer = rendererId;
+				this.capabilities.outputProfile = getOutputProfileForRenderer(rendererId, this.capabilities);
 				this.debugReporter.update({
 					renderer: rendererId,
+					outputProfile: this.capabilities.outputProfile,
 					reasons: reasons
 				});
-				return capabilities;
+				return this.capabilities;
 			} catch (error) {
 				reasons.push("renderer init failed for " + rendererId + ": " + error.message);
 				this.debugReporter.log("renderer init failed", {

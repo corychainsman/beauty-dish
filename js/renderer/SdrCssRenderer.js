@@ -1,5 +1,4 @@
 import { RENDERER_IDS } from "./types.js";
-import { getDisplayableCssColor } from "../utils/color.js";
 
 export class SdrCssRenderer {
 	constructor() {
@@ -14,7 +13,7 @@ export class SdrCssRenderer {
 	}
 
 	render(state) {
-		this.container.style.backgroundColor = getDisplayableCssColor(state.baseColorObject, state.hdrIntensity);
+		this.container.style.backgroundColor = state.sdrCssColor;
 		this.container.style.filter = "none";
 	}
 

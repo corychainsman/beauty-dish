@@ -1,4 +1,4 @@
-import { RENDERER_IDS, RENDERER_ORDER } from "./types.js";
+import { OUTPUT_PROFILES, RENDERER_IDS, RENDERER_ORDER } from "./types.js";
 
 export function selectRenderer(capabilities) {
 	var reasons = capabilities.reasons.slice();
@@ -26,8 +26,17 @@ export function selectRenderer(capabilities) {
 	return {
 		selectedRenderer: selectedRenderer,
 		orderedRenderers: buildAttemptOrder(selectedRenderer),
+		outputProfile: getOutputProfileForRenderer(selectedRenderer, capabilities),
 		reasons: reasons
 	};
+}
+
+export function getOutputProfileForRenderer(rendererId, capabilities) {
+	if (rendererId === RENDERER_IDS.WEBGPU_HDR && capabilities.webGpuHdrSupported) {
+		return OUTPUT_PROFILES.HDR_P3;
+	}
+
+	return OUTPUT_PROFILES.SDR_SRGB;
 }
 
 function buildAttemptOrder(selectedRenderer) {

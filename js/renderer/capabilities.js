@@ -1,10 +1,12 @@
-import { RENDERER_IDS } from "./types.js";
+import { OUTPUT_PROFILES, RENDERER_IDS } from "./types.js";
 
 export async function getRenderCapabilities(options) {
 	var reasons = [];
 	var reportsHighDynamicRange = false;
 	var forceRenderer = options.forceRenderer || null;
 	var hasWebGpu = !!navigator.gpu;
+	var supportsDisplayP3Canvas = !!(window.CSS && window.CSS.supports && window.CSS.supports("color", "color(display-p3 1 1 1)"));
+	var supportsExtendedToneMapping = false;
 	var webGpuHdrSupported = false;
 	var ultraHdrPathAllowed = false;
 
@@ -33,6 +35,8 @@ export async function getRenderCapabilities(options) {
 						}
 					});
 					context.unconfigure();
+					supportsExtendedToneMapping = true;
+					supportsDisplayP3Canvas = true;
 					webGpuHdrSupported = true;
 				} else {
 					reasons.push("webgpu context unavailable");
@@ -59,8 +63,11 @@ export async function getRenderCapabilities(options) {
 	return {
 		reportsHighDynamicRange: reportsHighDynamicRange,
 		hasWebGpu: hasWebGpu,
+		supportsDisplayP3Canvas: supportsDisplayP3Canvas,
+		supportsExtendedToneMapping: supportsExtendedToneMapping,
 		webGpuHdrSupported: webGpuHdrSupported && reportsHighDynamicRange,
 		ultraHdrPathAllowed: ultraHdrPathAllowed,
+		outputProfile: webGpuHdrSupported && reportsHighDynamicRange ? OUTPUT_PROFILES.HDR_P3 : OUTPUT_PROFILES.SDR_SRGB,
 		selectedRenderer: RENDERER_IDS.SDR_CSS,
 		forcedRenderer: forceRenderer,
 		reasons: reasons

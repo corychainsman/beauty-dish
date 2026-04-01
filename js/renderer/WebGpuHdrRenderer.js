@@ -106,9 +106,9 @@ export class WebGpuHdrRenderer {
 
 	render(state) {
 		var linearData = new Float32Array([
-			state.baseColor.r * state.hdrIntensity,
-			state.baseColor.g * state.hdrIntensity,
-			state.baseColor.b * state.hdrIntensity,
+			state.hdrDisplayLinearP3.r,
+			state.hdrDisplayLinearP3.g,
+			state.hdrDisplayLinearP3.b,
 			1,
 			state.viewportWidth,
 			state.viewportHeight,
