@@ -94,6 +94,21 @@ button
     color: #101418;
 }
 
+.pickerControlRow
+{
+    margin: .5rem 0 0;
+}
+
+.hdrToggleLabel
+{
+    display: inline-flex;
+    align-items: center;
+    gap: .45rem;
+
+    width: auto;
+    max-width: 100%;
+}
+
 .temperatureBrightnessGraph
 {
     width: var(--picker-control-width);
@@ -257,7 +272,7 @@ input
 input[type='checkbox']
 {
     width: auto;
-    margin: 0 .35em 0 0;
+    margin: 0;
 }
 
 #advanced

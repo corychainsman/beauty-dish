@@ -14,17 +14,9 @@
 <div id="dish"></div>
 <div id="picker">
 	<h3>Video Conference Beauty Dish</h3>
-	<h5 id="brightnessStatus">Relative brightness: 1.00x</h5>
-	<p>
-		<label for="hdrToggle">
-			<input type="checkbox" id="hdrToggle" checked>
-			HDR Boost (if supported)
-		</label>
-	</p>
 	<div id="temperatureBrightnessGraph" class="temperatureBrightnessGraph">
 		<div class="temperatureBrightnessGraphHeader">
 			<p class="temperatureBrightnessGraphTitle">Temperature / brightness</p>
-			<p class="temperatureBrightnessGraphSubtitle">Relative brightness</p>
 		</div>
 		<div class="temperatureBrightnessGraphBody">
 			<div class="temperatureBrightnessGraphPlot">
@@ -48,6 +40,13 @@
 		</div>
 	</div>
 	<p>Temperature: <span id="output"></span></p>
+	<h5 id="brightnessStatus">Relative brightness: 1.00x</h5>
+	<p class="pickerControlRow">
+		<label for="hdrToggle" class="hdrToggleLabel">
+			<input type="checkbox" id="hdrToggle" checked>
+			<span>HDR Boost (if supported)</span>
+		</label>
+	</p>
 	<p><a id="toggleAdvanced" href="#">Show/Hide Advanced Settings</a></p>
 	<div id="advanced" class="hidden">
 		<p>Write your own <a href="https://vis4.net/chromajs/" target="_blank">chroma.js</a> code to set the color</p>
