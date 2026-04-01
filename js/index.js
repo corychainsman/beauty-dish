@@ -20,6 +20,7 @@ var SDR_MAX_BRIGHTNESS = 100;
 var HDR_MAX_BRIGHTNESS = 200;
 var BRIGHTNESS_STEP = 5;
 var hdrSupported = window.matchMedia && window.matchMedia("(dynamic-range: high)").matches;
+var dishBaseColor = chroma.temperature(parseInt(slider.value));
 
 updateColor(slider.value);
 code_output.innerHTML = eval(code.value);
@@ -78,6 +79,10 @@ code.onkeydown = function(e){
 
 submit.onclick = function(){
 	dish.style.background = thumbnail.style.background;
+	if (chroma.valid(thumbnail.style.background)) {
+		dishBaseColor = chroma(thumbnail.style.background);
+		applyBrightness();
+	}
 	slider.value = (parseInt(slider.min) + parseInt(slider.max))/2;
 	output.innerHTML = "N/A";
 };
@@ -177,7 +182,8 @@ interact('#videoContainer')
 
 function updateColor(value) {
 	output.innerHTML = value;
-	dish.style.backgroundColor = chroma.temperature(value);
+	dishBaseColor = chroma.temperature(parseInt(value));
+	applyBrightness();
 	return;
 }
 
@@ -201,8 +207,13 @@ function getBrightnessMax() {
 function applyBrightness() {
 	var maxBrightness = getBrightnessMax();
 	brightnessLevel = Math.min(Math.max(brightnessLevel, MIN_BRIGHTNESS), maxBrightness);
+	var scaledLightness = dishBaseColor.lch()[0] * (brightnessLevel / 100);
+	scaledLightness = Math.min(100, Math.max(0, scaledLightness));
+	var baseLch = dishBaseColor.lch();
+	var adjustedColor = chroma.lch(scaledLightness, baseLch[1], baseLch[2]);
 
-	dish.style.filter = "brightness(" + (brightnessLevel / 100) + ")";
+	dish.style.backgroundColor = adjustedColor.css();
+	dish.style.filter = "none";
 
 	var hdrState = hdrToggle.checked ? (hdrSupported ? "HDR on" : "HDR requested (unsupported)") : "HDR off";
 	brightnessStatus.innerHTML = "Brightness ➡️ " + brightnessLevel + "% (" + hdrState + ")";
