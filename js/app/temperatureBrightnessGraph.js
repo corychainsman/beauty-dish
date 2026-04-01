@@ -223,7 +223,7 @@ export class TemperatureBrightnessGraph {
 	}
 
 	drawUnreachableOverlay(stageWidth, stageHeight) {
-		if (!this.boundarySamples.length) {
+		if (!this.boundarySamples.length || !hasVisibleUnreachableRegion(this.boundarySamples)) {
 			return;
 		}
 
@@ -303,4 +303,14 @@ function interpolate(minValue, maxValue, progress) {
 
 function formatRelativeLuminance(value) {
 	return value.toFixed(2) + "x";
+}
+
+function hasVisibleUnreachableRegion(boundarySamples) {
+	for (var index = 0; index < boundarySamples.length; index += 1) {
+		if (boundarySamples[index].y > 0.002) {
+			return true;
+		}
+	}
+
+	return false;
 }
