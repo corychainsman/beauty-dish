@@ -200,6 +200,17 @@ interact("#videoContainer")
 
 		target.setAttribute("data-x", x);
 		target.setAttribute("data-y", y);
+	})
+	.on("tap", function() {
+		if (video.srcObject) {
+			video.srcObject.getTracks().forEach(function(track) { track.stop(); });
+			video.srcObject = null;
+		}
+		videoContainer.classList.add("hidden");
+		videoContainer.style.webkitTransform = videoContainer.style.transform = "";
+		videoContainer.removeAttribute("data-x");
+		videoContainer.removeAttribute("data-y");
+		webcamPreview.classList.remove("hidden");
 	});
 
 function dragMoveListener(event) {
