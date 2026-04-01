@@ -17,14 +17,15 @@ import {
 var DEFAULT_PAPER_WHITE_NITS = 203;
 var HDR_CHROMA_SAFE_CHANNEL_CEILING = 1;
 var EPSILON = 1e-6;
+var MIN_RELATIVE_LUMINANCE = Math.pow(2, (10 - 100) / 50);
+var REFERENCE_RELATIVE_LUMINANCE = 1;
 
-export function buildColorPipelineState(baseColorObject, brightnessLevel, outputProfile) {
+export function buildColorPipelineState(baseColorObject, relativeLuminance, outputProfile) {
 	var uiEncodedSrgb = getUiEncodedSrgb(baseColorObject);
 	var workingLinearP3 = linearSrgbToLinearDisplayP3(encodedSrgbToLinearSrgb(uiEncodedSrgb));
-	var hdrChromaSafeScaleMax = getHdrChromaSafeScaleMax(workingLinearP3);
-	var hdrChromaSafeBrightnessMax = 100 + (100 * Math.max(hdrChromaSafeScaleMax - 1, 0));
-	var peakWhiteNits = DEFAULT_PAPER_WHITE_NITS * (outputProfile === OUTPUT_PROFILES.HDR_P3 ? hdrChromaSafeScaleMax : 1);
-	var exposureScale = getExposureScale(brightnessLevel, outputProfile, hdrChromaSafeScaleMax);
+	var hdrChromaSafeRelativeLuminanceMax = getHdrChromaSafeRelativeLuminanceMaxFromWorkingColor(workingLinearP3, outputProfile);
+	var peakWhiteNits = DEFAULT_PAPER_WHITE_NITS * hdrChromaSafeRelativeLuminanceMax;
+	var exposureScale = clampValue(relativeLuminance, MIN_RELATIVE_LUMINANCE, Number.POSITIVE_INFINITY);
 	var exposureStops = Math.log2(Math.max(exposureScale, EPSILON));
 	var sceneLinearP3 = scaleColor(workingLinearP3, exposureScale);
 	var pipelineFlags = {
@@ -42,20 +43,48 @@ export function buildColorPipelineState(baseColorObject, brightnessLevel, output
 	return {
 		outputProfile: outputProfile,
 		uiEncodedSrgb: uiEncodedSrgb,
+		relativeLuminance: exposureScale,
 		workingLinearP3: workingLinearP3,
-		hdrChromaSafeScaleMax: hdrChromaSafeScaleMax,
-		hdrChromaSafeBrightnessMax: hdrChromaSafeBrightnessMax,
+		hdrChromaSafeRelativeLuminanceMax: hdrChromaSafeRelativeLuminanceMax,
 		exposureStops: exposureStops,
 		exposureScale: exposureScale,
 		sceneLinearP3: sceneLinearP3,
 		hdrDisplayLinearP3: hdrDisplayLinearP3,
 		sdrLinearSrgb: sdrLinearSrgb,
+		sdrEncodedSrgb: linearSrgbToEncodedSrgb(sdrLinearSrgb),
 		sdrCssColor: sdrCssColor,
 		toneMapOperator: TONE_MAP_OPERATORS.ACES_FIT,
 		paperWhiteNits: DEFAULT_PAPER_WHITE_NITS,
 		peakWhiteNits: peakWhiteNits,
 		pipelineFlags: pipelineFlags
 	};
+}
+
+export function getMinimumRelativeLuminance() {
+	return MIN_RELATIVE_LUMINANCE;
+}
+
+export function getReferenceRelativeLuminance() {
+	return REFERENCE_RELATIVE_LUMINANCE;
+}
+
+export function getChromaSafeRelativeLuminanceMax(baseColorObject, outputProfile) {
+	var uiEncodedSrgb = getUiEncodedSrgb(baseColorObject);
+	var workingLinearP3 = linearSrgbToLinearDisplayP3(encodedSrgbToLinearSrgb(uiEncodedSrgb));
+
+	return getHdrChromaSafeRelativeLuminanceMaxFromWorkingColor(workingLinearP3, outputProfile);
+}
+
+export function getTemperatureGraphSample(temperatureKelvin, relativeLuminance, outputProfile) {
+	var baseColorObject = window.chroma.temperature(Math.round(temperatureKelvin));
+	var chromaSafeRelativeLuminanceMax = getChromaSafeRelativeLuminanceMax(baseColorObject, outputProfile);
+	var pipelineState = buildColorPipelineState(baseColorObject, relativeLuminance, outputProfile);
+
+	return Object.assign({
+		temperatureKelvin: Math.round(temperatureKelvin),
+		chromaSafeRelativeLuminanceMax: chromaSafeRelativeLuminanceMax,
+		isReachable: relativeLuminance <= chromaSafeRelativeLuminanceMax + EPSILON
+	}, pipelineState);
 }
 
 function getUiEncodedSrgb(baseColorObject) {
@@ -158,28 +187,18 @@ function capHdrColorPreservingChromaticity(color, peakRatio) {
 	return scaleColor(color, peakRatio / maxChannel);
 }
 
-function getHdrChromaSafeScaleMax(workingLinearP3) {
+function getHdrChromaSafeRelativeLuminanceMaxFromWorkingColor(workingLinearP3, outputProfile) {
+	if (outputProfile !== OUTPUT_PROFILES.HDR_P3) {
+		return REFERENCE_RELATIVE_LUMINANCE;
+	}
+
 	var maxChannel = Math.max(workingLinearP3.r, workingLinearP3.g, workingLinearP3.b);
 
 	if (maxChannel <= EPSILON) {
-		return 1;
+		return REFERENCE_RELATIVE_LUMINANCE;
 	}
 
-	return Math.max(HDR_CHROMA_SAFE_CHANNEL_CEILING / maxChannel, 1);
-}
-
-function getExposureScale(brightnessLevel, outputProfile, hdrChromaSafeScaleMax) {
-	if (brightnessLevel <= 100) {
-		return Math.pow(2, (brightnessLevel - 100) / 50);
-	}
-
-	if (outputProfile !== OUTPUT_PROFILES.HDR_P3) {
-		return 1;
-	}
-
-	var interpolation = (brightnessLevel - 100) / 100;
-
-	return Math.pow(hdrChromaSafeScaleMax, interpolation);
+	return Math.max(HDR_CHROMA_SAFE_CHANNEL_CEILING / maxChannel, REFERENCE_RELATIVE_LUMINANCE);
 }
 
 function acesFitToneMap(value) {

@@ -64,7 +64,168 @@ button
     margin: 0 auto;
     padding: 1rem 1rem 2rem;
 
+    color: #101418;
     text-align: center;
+    transition: color 140ms ease-out;
+}
+
+#picker a,
+#picker a:visited
+{
+    color: #1d4ed8;
+    transition: color 140ms ease-out;
+}
+
+#picker small,
+.temperatureBrightnessGraphSubtitle,
+.temperatureBrightnessGraphYAxis,
+.temperatureBrightnessGraphXAxis
+{
+    color: rgba(16, 20, 24, .8);
+}
+
+#advanced textarea,
+#advanced button
+{
+    color: #101418;
+}
+
+.temperatureBrightnessGraph
+{
+    width: min(28rem, calc(100vw - 2rem));
+    margin: 0 auto 1rem;
+}
+
+.temperatureBrightnessGraphHeader
+{
+    margin-bottom: .5rem;
+}
+
+.temperatureBrightnessGraphTitle,
+.temperatureBrightnessGraphSubtitle
+{
+    margin: 0;
+}
+
+.temperatureBrightnessGraphTitle
+{
+    font-weight: 700;
+}
+
+.temperatureBrightnessGraphSubtitle
+{
+    font-size: .9rem;
+}
+
+.temperatureBrightnessGraphBody
+{
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: .5rem;
+    align-items: stretch;
+}
+
+.temperatureBrightnessGraphYAxis
+{
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+
+    min-width: 3rem;
+    padding: .2rem 0;
+
+    text-align: right;
+    font-size: .78rem;
+}
+
+.temperatureBrightnessGraphPlot
+{
+    display: flex;
+    flex-direction: column;
+    gap: .35rem;
+}
+
+.temperatureBrightnessGraphStage
+{
+    position: relative;
+
+    overflow: visible;
+    margin-top: .5rem;
+
+    aspect-ratio: 5 / 4;
+    border: 1px solid rgba(15, 15, 15, .35);
+    border-radius: .9rem;
+    box-shadow: 0 8px 18px rgba(0, 0, 0, .12);
+
+    cursor: crosshair;
+    background: linear-gradient(180deg, rgba(255, 255, 255, .16), rgba(255, 255, 255, .02));
+}
+
+.temperatureBrightnessGraph--disabled .temperatureBrightnessGraphStage
+{
+    cursor: crosshair;
+}
+
+#temperatureBrightnessGraphCanvas
+{
+    position: absolute;
+    top: 0;
+    left: 0;
+
+    width: 100%;
+    height: 100%;
+    border-radius: inherit;
+}
+
+.temperatureBrightnessGraphHandle
+{
+    position: absolute;
+    z-index: 2;
+
+    width: 16px;
+    height: 16px;
+
+    transform: translate(-50%, -50%);
+
+    border: 2px solid #090909;
+    border-radius: 50%;
+    background: transparent;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, .85);
+    pointer-events: none;
+}
+
+.temperatureBrightnessGraph--disabled .temperatureBrightnessGraphHandle
+{
+    opacity: .45;
+}
+
+.temperatureBrightnessGraphNotice
+{
+    position: absolute;
+    z-index: 3;
+    top: 50%;
+    left: 50%;
+
+    max-width: 80%;
+    padding: .55rem .75rem;
+
+    transform: translate(-50%, -50%);
+
+    color: #fffaf1;
+    border-radius: .75rem;
+    background: rgba(10, 12, 14, .72);
+
+    font-size: .82rem;
+    line-height: 1.35;
+    pointer-events: none;
+}
+
+.temperatureBrightnessGraphXAxis
+{
+    display: flex;
+    justify-content: space-between;
+
+    font-size: .78rem;
 }
 
 label
@@ -84,77 +245,6 @@ input[type='checkbox']
 {
     width: auto;
     margin: 0 .35em 0 0;
-}
-
-input[type='range']
-{
-    width: 24em;
-    margin: 13.8px 0;
-
-    -webkit-appearance: none;
-}
-input[type='range']:focus
-{
-    outline: none;
-}
-input[type='range']::-webkit-slider-runnable-track
-{
-    width: 100%;
-    height: 8.4px;
-
-    cursor: pointer;
-
-    border: .5px solid #010101;
-    border-radius: 1.3px;
-    background: rgba(48, 113, 169, 0);
-    box-shadow: 1px 1px 1px rgba(0, 0, 0, .51),
-    0 0 1px rgba(13, 13, 13, .51);
-}
-input[type='range']::-webkit-slider-thumb
-{
-    width: 16px;
-    height: 36px;
-    margin-top: -14.3px;
-
-    cursor: pointer;
-
-    border: 1px solid #000;
-    border-radius: 3px;
-    background: #fff;
-    box-shadow: 1px 1px 1px #000,
-    0 0 1px #0d0d0d;
-
-    -webkit-appearance: none;
-}
-input[type='range']:focus::-webkit-slider-runnable-track
-{
-    background: rgba(54, 126, 189, 0);
-}
-input[type='range']::-moz-range-track
-{
-    width: 100%;
-    height: 8.4px;
-
-    cursor: pointer;
-
-    border: .5px solid #010101;
-    border-radius: 1.3px;
-    background: rgba(48, 113, 169, 0);
-    box-shadow: 1px 1px 1px rgba(0, 0, 0, .51),
-    0 0 1px rgba(13, 13, 13, .51);
-}
-input[type='range']::-moz-range-thumb
-{
-    width: 16px;
-    height: 36px;
-
-    cursor: pointer;
-
-    border: 1px solid #000;
-    border-radius: 3px;
-    background: #fff;
-    box-shadow: 1px 1px 1px #000,
-    0 0 1px #0d0d0d;
 }
 
 #advanced

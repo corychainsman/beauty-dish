@@ -13,20 +13,40 @@
 
 <div id="dish"></div>
 <div id="picker">
-	<h3>💡<br>Video Conference Beauty Dish<br>💡️</h3>
-	<h5>Maximize Window 🖥️</h5>
-	<h5 id="brightnessStatus">Brightness ➡️ 100%</h5>
+	<h3>Video Conference Beauty Dish</h3>
+	<h5 id="brightnessStatus">Relative brightness: 1.00x</h5>
 	<p>
 		<label for="hdrToggle">
 			<input type="checkbox" id="hdrToggle" checked>
 			HDR Boost (if supported)
 		</label>
 	</p>
-	<p><small>Shortcuts: ⬆️ brighter, ⬇️ dimmer</small></p>
-	<br>
-	<p><label for="slider">Color temperature: <span id="output"></span>K</label></p>
-	<input type="range" id="slider" name="volume" min="3000" max="8000">
-	<p><a id="toggleAdvanced" href="#">Show/Hide Advanced Options</a></p>
+	<div id="temperatureBrightnessGraph" class="temperatureBrightnessGraph">
+		<div class="temperatureBrightnessGraphHeader">
+			<p class="temperatureBrightnessGraphTitle">Temperature / brightness</p>
+			<p class="temperatureBrightnessGraphSubtitle">Relative brightness</p>
+		</div>
+		<div class="temperatureBrightnessGraphBody">
+			<div class="temperatureBrightnessGraphYAxis">
+				<span id="graphYMax">1.00x</span>
+				<span id="graphYMid">0.64x</span>
+				<span id="graphYMin">0.29x</span>
+			</div>
+			<div class="temperatureBrightnessGraphPlot">
+				<div id="temperatureBrightnessGraphStage" class="temperatureBrightnessGraphStage">
+					<canvas id="temperatureBrightnessGraphCanvas" aria-hidden="true"></canvas>
+					<div id="temperatureBrightnessGraphHandle" class="temperatureBrightnessGraphHandle"></div>
+					<div id="temperatureBrightnessGraphNotice" class="temperatureBrightnessGraphNotice hidden"></div>
+				</div>
+				<div class="temperatureBrightnessGraphXAxis">
+					<span>3000K</span>
+					<span>8000K</span>
+				</div>
+			</div>
+		</div>
+	</div>
+	<p>Temperature: <span id="output"></span></p>
+	<p><a id="toggleAdvanced" href="#">Show/Hide Advanced Settings</a></p>
 	<div id="advanced" class="hidden">
 		<p>Write your own <a href="https://vis4.net/chromajs/" target="_blank">chroma.js</a> code to set the color</p>
 		<textarea id="code" placeholder="chroma({ l:80, c:25, h:200 })" rows="3" cols="35">chroma({ l:80, c:25, h:200 })</textarea>
