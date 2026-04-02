@@ -273,6 +273,7 @@ function applyRenderState() {
 		temperatureMin: temperatureMinimum,
 		temperatureMax: temperatureMaximum,
 		enabled: selectionMode === "temperature-graph",
+		hidePreview: selectionMode === "custom-color",
 		disabledReason: selectionMode === "custom-color" ? "Custom color active. Drag in the graph to return to temperature mode." : ""
 	});
 	temperatureBrightnessGraph.setSelection({

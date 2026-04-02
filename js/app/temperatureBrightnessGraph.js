@@ -61,6 +61,7 @@ export class TemperatureBrightnessGraph {
 		this.boundarySamples = this.buildBoundarySamples();
 		this.updateLabels();
 		this.root.classList.toggle("temperatureBrightnessGraph--disabled", !this.renderState.enabled);
+		this.root.classList.toggle("temperatureBrightnessGraph--customColorActive", this.renderState.hidePreview);
 		this.notice.classList.toggle("hidden", this.renderState.enabled);
 		this.notice.textContent = this.renderState.disabledReason || "";
 
@@ -237,6 +238,12 @@ export class TemperatureBrightnessGraph {
 		}
 
 		this.context.clearRect(0, 0, stageWidth, stageHeight);
+
+		if (this.renderState.hidePreview) {
+			this.positionHandle();
+			return;
+		}
+
 		this.context.imageSmoothingEnabled = true;
 		this.context.drawImage(this.sampleCanvas, 0, 0, stageWidth, stageHeight);
 		this.drawUnreachableOverlay(stageWidth, stageHeight);

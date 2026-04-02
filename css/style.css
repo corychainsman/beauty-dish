@@ -172,7 +172,6 @@ button
     aspect-ratio: 5 / 4;
     border: 1px solid rgba(15, 15, 15, .35);
     border-radius: .9rem;
-    box-shadow: 0 8px 18px rgba(0, 0, 0, .12);
 
     cursor: crosshair;
     background: linear-gradient(180deg, rgba(255, 255, 255, .16), rgba(255, 255, 255, .02));
@@ -192,6 +191,11 @@ button
 .temperatureBrightnessGraph--disabled .temperatureBrightnessGraphStage
 {
     cursor: crosshair;
+}
+
+.temperatureBrightnessGraph--customColorActive .temperatureBrightnessGraphStage
+{
+    background: transparent;
 }
 
 #temperatureBrightnessGraphCanvas
@@ -226,6 +230,11 @@ button
 .temperatureBrightnessGraph--disabled .temperatureBrightnessGraphHandle
 {
     opacity: .45;
+}
+
+.temperatureBrightnessGraph--customColorActive .temperatureBrightnessGraphHandle
+{
+    opacity: 0;
 }
 
 .temperatureBrightnessGraphNotice
