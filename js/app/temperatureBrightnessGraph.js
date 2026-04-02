@@ -29,17 +29,28 @@ export class TemperatureBrightnessGraph {
 		this.minRelativeLuminance = getMinimumRelativeLuminance();
 		this.maxRelativeLuminance = 1;
 		this.dragging = false;
+		this.primaryPointerIsCoarse = Boolean(window.matchMedia)
+			&& window.matchMedia("(pointer: coarse)").matches;
+		this.scrollLockActive = false;
 		this.cacheKey = null;
 
 		this.handlePointerDown = this.handlePointerDown.bind(this);
 		this.handlePointerMove = this.handlePointerMove.bind(this);
 		this.handlePointerUp = this.handlePointerUp.bind(this);
 		this.handleDoubleClick = this.handleDoubleClick.bind(this);
+		this.handleTouchStart = this.handleTouchStart.bind(this);
+		this.handleTouchMove = this.handleTouchMove.bind(this);
 
 		this.stage.addEventListener("pointerdown", this.handlePointerDown);
 		this.stage.addEventListener("pointermove", this.handlePointerMove);
 		this.stage.addEventListener("pointerup", this.handlePointerUp);
 		this.stage.addEventListener("pointercancel", this.handlePointerUp);
+		this.stage.addEventListener("touchstart", this.handleTouchStart, {
+			passive: false
+		});
+		this.stage.addEventListener("touchmove", this.handleTouchMove, {
+			passive: false
+		});
 		this.stage.addEventListener("dblclick", this.handleDoubleClick);
 	}
 
@@ -70,6 +81,8 @@ export class TemperatureBrightnessGraph {
 		this.stage.removeEventListener("pointermove", this.handlePointerMove);
 		this.stage.removeEventListener("pointerup", this.handlePointerUp);
 		this.stage.removeEventListener("pointercancel", this.handlePointerUp);
+		this.stage.removeEventListener("touchstart", this.handleTouchStart);
+		this.stage.removeEventListener("touchmove", this.handleTouchMove);
 		this.stage.removeEventListener("dblclick", this.handleDoubleClick);
 	}
 
@@ -79,6 +92,12 @@ export class TemperatureBrightnessGraph {
 		}
 
 		this.dragging = true;
+		this.scrollLockActive = this.shouldLockScrollDuringDrag(event);
+
+		if (this.scrollLockActive && event.cancelable) {
+			event.preventDefault();
+		}
+
 		this.stage.setPointerCapture(event.pointerId);
 		this.updateFromPointer(event);
 	}
@@ -86,6 +105,10 @@ export class TemperatureBrightnessGraph {
 	handlePointerMove(event) {
 		if (!this.dragging || !this.renderState) {
 			return;
+		}
+
+		if (this.scrollLockActive && event.cancelable) {
+			event.preventDefault();
 		}
 
 		this.updateFromPointer(event);
@@ -97,10 +120,27 @@ export class TemperatureBrightnessGraph {
 		}
 
 		this.dragging = false;
+		this.scrollLockActive = false;
 
 		if (event.pointerId !== undefined && this.stage.hasPointerCapture(event.pointerId)) {
 			this.stage.releasePointerCapture(event.pointerId);
 		}
+	}
+
+	handleTouchStart(event) {
+		if (!this.primaryPointerIsCoarse || !this.renderState || !event.cancelable) {
+			return;
+		}
+
+		event.preventDefault();
+	}
+
+	handleTouchMove(event) {
+		if (!this.dragging || !this.primaryPointerIsCoarse || !event.cancelable) {
+			return;
+		}
+
+		event.preventDefault();
 	}
 
 	handleDoubleClick() {
@@ -110,9 +150,13 @@ export class TemperatureBrightnessGraph {
 	}
 
 	updateFromPointer(event) {
+		this.updateFromClientPosition(event.clientX, event.clientY);
+	}
+
+	updateFromClientPosition(clientX, clientY) {
 		var rect = this.stage.getBoundingClientRect();
-		var clampedX = clampValue(event.clientX - rect.left, 0, rect.width);
-		var clampedY = clampValue(event.clientY - rect.top, 0, rect.height);
+		var clampedX = clampValue(clientX - rect.left, 0, rect.width);
+		var clampedY = clampValue(clientY - rect.top, 0, rect.height);
 		var normalizedX = rect.width > 0 ? clampedX / rect.width : 0;
 		var normalizedY = rect.height > 0 ? clampedY / rect.height : 0;
 		var temperatureKelvin = interpolate(this.renderState.temperatureMin, this.renderState.temperatureMax, normalizedX);
@@ -128,6 +172,10 @@ export class TemperatureBrightnessGraph {
 		if (this.options.onChange) {
 			this.options.onChange(selection);
 		}
+	}
+
+	shouldLockScrollDuringDrag(event) {
+		return this.primaryPointerIsCoarse && event.pointerType !== "mouse";
 	}
 
 	clampSelection(selection) {
