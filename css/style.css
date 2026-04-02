@@ -319,7 +319,7 @@ textarea
 {
     position: fixed;
     z-index: 3;
-    bottom: 0;
+    bottom: env(safe-area-inset-bottom, 0px);
     left: 0;
 
     margin: .5em;
@@ -327,9 +327,9 @@ textarea
 
 #videoContainer
 {
-    position: absolute;
+    position: fixed;
     z-index: 3;
-    bottom: 0;
+    bottom: env(safe-area-inset-bottom, 0px);
     left: 0;
 
     box-sizing: border-box;
