@@ -1,8 +1,7 @@
 @font-face
 {
-    font-family: "Boston";
-    src: url("../fonts/Boston-Regular.woff2") format("woff2"),
-    url("../fonts/Boston-Regular.woff") format("woff");
+    font-family: "Monaspace Krypton";
+    src: url("https://cdn.jsdelivr.net/fontsource/fonts/monaspace-krypton@latest/monaspace-krypton-latin-400-normal.woff2") format("woff2");
     font-style: normal;
     font-weight: 400;
     font-display: swap;
@@ -44,7 +43,7 @@ body
     margin: 0;
     padding: 0;
     overflow-x: hidden;
-    font-family: "Boston", "Times New Roman", serif;
+    font-family: "Monaspace Krypton", monospace;
 }
 
 button,

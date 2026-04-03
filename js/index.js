@@ -10,7 +10,7 @@ import {
 import { linearDisplayP3ToLinearSrgb, linearSrgbToEncodedSrgb } from "./utils/colorTransforms.js";
 import { createDebugReporter } from "./utils/debug.js";
 
-var APP_VERSION = 11;
+var APP_VERSION = 12;
 var dish = document.getElementById("dish");
 var picker = document.getElementById("picker");
 var appVersionBadge = document.getElementById("appVersionBadge");
