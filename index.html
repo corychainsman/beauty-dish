@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8" name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Beauty Dish</title>
+		<link rel="preload" href="fonts/Boston-Regular.woff2" as="font" type="font/woff2" crossorigin>
 		<link rel="stylesheet" href="css/style.css">
 </head>
 
@@ -11,6 +12,7 @@
 <script src="js/chroma.min.js"></script>
 <script src="js/interact.min.js"></script>
 
+<div id="appVersionBadge" aria-label="App version"></div>
 <div id="dish"></div>
 <div id="picker">
 	<h3>Video Conference Beauty Dish</h3>
@@ -39,15 +41,14 @@
 			</div>
 		</div>
 	</div>
-	<p>Temperature: <span id="output"></span></p>
-	<h5 id="brightnessStatus">Relative brightness: 1.00x</h5>
-	<p class="pickerControlRow">
-		<label for="hdrToggle" class="hdrToggleLabel">
+	<h5 id="brightnessStatus">
+		<span id="brightnessStatusText">5500K @ 1.00x Brightness</span>
+		<label for="hdrToggle" id="hdrToggleInline" class="hdrToggleInline hidden">
+			<span> : HDR</span>
 			<input type="checkbox" id="hdrToggle" checked>
-			<span>HDR Boost (if supported)</span>
 		</label>
-	</p>
-	<p><a id="toggleAdvanced" href="#">Show/Hide Advanced Settings</a></p>
+	</h5>
+	<p><a id="toggleAdvanced" href="#">Advanced</a></p>
 	<div id="advanced" class="hidden">
 		<p>Write your own <a href="https://vis4.net/chromajs/" target="_blank">chroma.js</a> code to set the color</p>
 		<textarea id="code" placeholder="chroma({ l:80, c:25, h:200 })" rows="3" cols="35">chroma({ l:80, c:25, h:200 })</textarea>
@@ -56,7 +57,7 @@
 	</div>
 </div>
 <pre id="debugOverlay" class="hidden" aria-live="polite"></pre>
-<button id="webcamPreview" onclick="void(0)">Enable Webcam Preview</button>
+<button id="webcamPreview" onclick="void(0)">👀</button>
 <div id="videoContainer" class="hidden">
 	<button id="resizeWebcamPreview"></button>
 	<video id="videoElement" autoplay playsinline></video>

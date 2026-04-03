@@ -10,17 +10,20 @@ import {
 import { linearDisplayP3ToLinearSrgb, linearSrgbToEncodedSrgb } from "./utils/colorTransforms.js";
 import { createDebugReporter } from "./utils/debug.js";
 
+var APP_VERSION = 11;
 var dish = document.getElementById("dish");
 var picker = document.getElementById("picker");
+var appVersionBadge = document.getElementById("appVersionBadge");
 var pickerForegroundElements = Array.prototype.slice.call(
-	picker.querySelectorAll("h3, h5, p, label, #output, #code_output, .temperatureBrightnessGraphTitle")
+	picker.querySelectorAll("h3, h5, p, label, #code_output, .temperatureBrightnessGraphTitle")
 );
 var pickerLinks = Array.prototype.slice.call(picker.querySelectorAll("a"));
 var pickerMutedElements = Array.prototype.slice.call(
 	picker.querySelectorAll("small, .temperatureBrightnessGraphSubtitle, .temperatureBrightnessGraphYAxis, .temperatureBrightnessGraphXAxis")
 );
-var output = document.getElementById("output");
 var brightnessStatus = document.getElementById("brightnessStatus");
+var brightnessStatusText = document.getElementById("brightnessStatusText");
+var hdrToggleInline = document.getElementById("hdrToggleInline");
 var hdrToggle = document.getElementById("hdrToggle");
 var toggleAdvanced = document.getElementById("toggleAdvanced");
 var advanced = document.getElementById("advanced");
@@ -57,6 +60,7 @@ var currentCapabilities = {
 	selectedRenderer: null
 };
 
+appVersionBadge.textContent = "v" + APP_VERSION;
 syncTemperatureControls();
 code_output.innerHTML = eval(code.value);
 updateThumbnail();
@@ -68,7 +72,8 @@ renderController.init(getRenderState())
 	})
 	.catch(function(error) {
 		console.error("Renderer initialization failed", error);
-		brightnessStatus.innerHTML = "Relative brightness: " + formatRelativeLuminance(selectedRelativeLuminance) + " (renderer init failed)";
+		brightnessStatusText.textContent = getSelectionLabel() + " @ " + formatRelativeLuminance(selectedRelativeLuminance) + " Brightness (renderer init failed)";
+		hdrToggleInline.classList.add("hidden");
 	});
 
 document.addEventListener("keydown", function(event) {
@@ -129,18 +134,23 @@ submit.onclick = function() {
 var videoContainer = document.getElementById("videoContainer");
 var video = document.getElementById("videoElement");
 webcamPreview.onclick = function() {
-	if (navigator.mediaDevices.getUserMedia) {
-		navigator.mediaDevices
-			.getUserMedia({ video: { facingMode: "user" }, audio: false })
-			.then(function(stream) {
-				webcamPreview.classList.add("hidden");
-				video.srcObject = stream;
-				videoContainer.classList.remove("hidden");
-			})
-			.catch(function(error) {
-				console.log("Something went wrong with the webcam preview: " + error);
-			});
+	if (!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)) {
+		console.log("Something went wrong with the webcam preview: getUserMedia unavailable");
+		return;
 	}
+
+	navigator.mediaDevices
+		.getUserMedia({ video: { facingMode: "user" }, audio: false })
+		.then(function(stream) {
+			webcamPreview.classList.add("hidden");
+			video.srcObject = stream;
+			videoContainer.classList.remove("hidden");
+			videoContainer.style.visibility = "hidden";
+			return video.play();
+		})
+		.catch(function(error) {
+			console.log("Something went wrong with the webcam preview: " + error);
+		});
 };
 
 window.addEventListener("keydown", function(event) {
@@ -157,6 +167,14 @@ window.addEventListener("keydown", function(event) {
 		event.preventDefault();
 		changeRelativeLuminance(-BRIGHTNESS_STEP / 100);
 	}
+});
+
+video.addEventListener("loadedmetadata", function() {
+	syncVideoContainerSizeToStream();
+	videoContainer.style.left = "";
+	videoContainer.style.top = "";
+	videoContainer.style.bottom = "";
+	videoContainer.style.visibility = "visible";
 });
 
 window.dragMoveListener = dragMoveListener;
@@ -207,7 +225,13 @@ interact("#videoContainer")
 			video.srcObject = null;
 		}
 		videoContainer.classList.add("hidden");
+		videoContainer.style.visibility = "";
 		videoContainer.style.webkitTransform = videoContainer.style.transform = "";
+		videoContainer.style.width = "";
+		videoContainer.style.height = "";
+		videoContainer.style.left = "";
+		videoContainer.style.top = "";
+		videoContainer.style.bottom = "";
 		videoContainer.removeAttribute("data-x");
 		videoContainer.removeAttribute("data-y");
 		webcamPreview.classList.remove("hidden");
@@ -261,7 +285,6 @@ function getRenderState() {
 
 function applyRenderState() {
 	var state = getRenderState();
-	var hdrState = state.hdrRequested ? (state.hdrSupported ? "HDR on" : "HDR requested (unsupported)") : "HDR off";
 
 	if (renderController.currentRenderer) {
 		renderController.resize(state.viewportWidth, state.viewportHeight);
@@ -299,7 +322,8 @@ function applyRenderState() {
 		pipelineFlags: formatDebugFlags(state.pipelineFlags)
 	});
 
-	brightnessStatus.innerHTML = "Relative brightness: " + formatRelativeLuminance(state.relativeLuminance) + " (" + hdrState + ")";
+	brightnessStatusText.textContent = getSelectionLabel() + " @ " + formatRelativeLuminance(state.relativeLuminance) + " Brightness";
+	hdrToggleInline.classList.toggle("hidden", currentCapabilities.outputProfile !== OUTPUT_PROFILES.HDR_P3);
 }
 
 window.addEventListener("resize", function() {
@@ -314,6 +338,61 @@ function formatDebugColor(color) {
 	return [color.r, color.g, color.b].map(function(value) {
 		return value.toFixed(3);
 	}).join(", ");
+}
+
+function syncVideoContainerSizeToStream() {
+	var videoWidth = video.videoWidth;
+	var videoHeight = video.videoHeight;
+	var aspectRatio;
+	var computedStyle;
+	var width;
+	var height;
+	var minWidth;
+	var maxWidth;
+	var minHeight;
+	var maxHeight;
+
+	if (!videoWidth || !videoHeight) {
+		return;
+	}
+
+	aspectRatio = videoWidth / videoHeight;
+	computedStyle = window.getComputedStyle(videoContainer);
+	width = parseFloat(computedStyle.width);
+	height = parseFloat(computedStyle.height);
+	minWidth = parseFloat(computedStyle.minWidth);
+	maxWidth = parseFloat(computedStyle.maxWidth);
+	minHeight = parseFloat(computedStyle.minHeight);
+	maxHeight = parseFloat(computedStyle.maxHeight);
+
+	if (Number.isNaN(width) || width <= 0) {
+		width = 128;
+	}
+
+	height = width / aspectRatio;
+
+	if (!Number.isNaN(minHeight) && height < minHeight) {
+		height = minHeight;
+		width = height * aspectRatio;
+	}
+
+	if (!Number.isNaN(maxHeight) && height > maxHeight) {
+		height = maxHeight;
+		width = height * aspectRatio;
+	}
+
+	if (!Number.isNaN(minWidth) && width < minWidth) {
+		width = minWidth;
+		height = width / aspectRatio;
+	}
+
+	if (!Number.isNaN(maxWidth) && width > maxWidth) {
+		width = maxWidth;
+		height = width / aspectRatio;
+	}
+
+	videoContainer.style.width = width + "px";
+	videoContainer.style.height = height + "px";
 }
 
 function formatDebugFlags(flags) {
@@ -367,7 +446,11 @@ function syncTemperatureControls() {
 }
 
 function refreshTemperatureOutputLabel() {
-	output.textContent = selectionMode === "custom-color" ? "Custom" : (selectedTemperatureKelvin + "K");
+	brightnessStatusText.textContent = getSelectionLabel() + " @ " + formatRelativeLuminance(selectedRelativeLuminance) + " Brightness";
+}
+
+function getSelectionLabel() {
+	return selectionMode === "custom-color" ? "Custom" : (selectedTemperatureKelvin + "K");
 }
 
 function formatRelativeLuminance(value) {
@@ -395,6 +478,7 @@ function applyPickerContrastTheme(state) {
 	pickerForegroundElements.forEach(function(element) {
 		element.style.color = foregroundColor;
 	});
+	appVersionBadge.style.color = foregroundColor;
 	pickerLinks.forEach(function(link) {
 		link.style.color = linkColor;
 	});
